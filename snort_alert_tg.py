@@ -52,16 +52,16 @@ def read_new_data():
 def build_message(event):
     msg_str = (
         f"Date: {event['date']}\n"
-        f"Event: {event['name']}\n"
+        f"\nEvent: {event['name']}\n"
         f"      - Start time: {event['start_time']}\n"
         f"      - Stop time: {event['stop_time']}\n"
-        f"Sources:\n"
+        f"\nSources:\n"
     )
 
     for source in event['sources']:
         msg_str += f"      - {source}\n"
 
-    msg_str += f"Hits: {event['hits']}\n"
+    msg_str += f"\nHits: {event['hits']}\n"
     return msg_str
 
 
