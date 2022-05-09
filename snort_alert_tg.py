@@ -1,12 +1,10 @@
 from os import environ as env
 from datetime import datetime, timedelta
-from pydoc import describe
 from time import sleep
-from collections import defaultdict
 import os
 import argparse
 
-from telethon import TelegramClient, Button
+from telethon import TelegramClient
 
 
 api_id = env['TG_API_ID']
@@ -19,8 +17,10 @@ data = {}
 events = dict()
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-u', '--username', required=True, help="Telegram username")
-parser.add_argument('-s', '--sleep', default=2, type=int, help='Bot sleep time in seconds')
+parser.add_argument('-u', '--username', required=True,
+                    help="Telegram username")
+parser.add_argument('-s', '--sleep', default=2, type=int,
+                    help='Bot sleep time in seconds')
 args = parser.parse_args()
 
 tg_username = args.username
@@ -62,7 +62,6 @@ def build_message(event):
         msg_str += f"      - {source}\n"
 
     msg_str += f"Hits: {event['hits']}\n"
-
     return msg_str
 
 
@@ -71,6 +70,18 @@ def is_event_recent(last_occurance, new_occurance):
     _new_occurance = datetime.strptime(new_occurance, "%d-%m-%Y %H:%M:%S")
     delta = timedelta(minutes=5)
     return (_new_occurance - _last_occurance) <= delta
+
+
+def populate_new_event(event, parsed_datetime, source):
+    events[event] = {
+        'msg_id': None,
+        'date': parsed_datetime['date'],
+        'name': event,
+        'start_time': parsed_datetime['time'],
+        'stop_time': parsed_datetime['time'],
+        'sources': [source],
+        'hits': 1,
+    }
 
 
 async def main():
@@ -95,16 +106,7 @@ async def main():
                 source = alert_parts[8].split(':')[0]
 
                 if event not in events:
-                    events[event] = {
-                        'msg_id': None,
-                        'date': parsed_datetime['date'],
-                        'name': event,
-                        'start_time': parsed_datetime['time'],
-                        'stop_time': parsed_datetime['time'],
-                        'sources': [source],
-                        'hits': 1,
-                    }
-
+                    populate_new_event(event, parsed_datetime, source)
                     msg_str = build_message(events[event])
                     msg = await client.send_message(tg_username, msg_str)
                     events[event]['msg_id'] = msg.id
@@ -115,22 +117,16 @@ async def main():
 
                     if is_event_recent(last_occurance, new_occurance):
                         events[event]['hits'] += 1
+                        events[event]['stop_time'] = parsed_datetime['time']
+
                         if source not in events[event]['sources']:
                             events[event]['sources'].append(source)
+
                         msg_str = build_message(events[event])
                         await client.edit_message(tg_username, events[event]['msg_id'], msg_str)
 
                     else:
-                        events[event] = {
-                            'msg_id': None,
-                            'date': parsed_datetime['date'],
-                            'name': event,
-                            'start_time': parsed_datetime['time'],
-                            'stop_time': parsed_datetime['time'],
-                            'sources': [source],
-                            'hits': 1,
-                        }
-
+                        populate_new_event(event, parsed_datetime, source)
                         msg_str = build_message(events[event])
                         msg = await client.send_message(tg_username, msg_str)
                         events[event]['msg_id'] = msg.id
