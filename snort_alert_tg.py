@@ -16,13 +16,15 @@ client = TelegramClient('anon', api_id, api_hash).start(bot_token=bot_token)
 
 log_file = '/var/log/snort/alert.fast'
 data = {}
-events = defaultdict(dict)
+events = dict()
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-u', '--username', help="Telegram username")
+parser.add_argument('-u', '--username', required=True, help="Telegram username")
+parser.add_argument('-s', '--sleep', default=2, type=int, help='Bot sleep time in seconds')
 args = parser.parse_args()
 
 tg_username = args.username
+bot_sleep = args.sleep
 
 
 def parse_datetime(date_str):
@@ -76,7 +78,7 @@ async def main():
     data['time_start'] = datetime.now()
 
     while True:
-        sleep(2)
+        sleep(bot_sleep)
 
         last_byte = get_last_byte()
 
