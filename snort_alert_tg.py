@@ -24,7 +24,7 @@ parser.add_argument('-s', '--sleep', default=2, type=int,
 args = parser.parse_args()
 
 tg_username = args.username
-bot_sleep = args.sleep
+tg_bot_sleep = args.sleep
 
 
 def parse_datetime(date_str):
@@ -55,6 +55,7 @@ def build_message(event):
         f"\nEvent: **{event['name']} #{event['occurance']}**\n"
         f"      - Start time: ```{event['start_time']}```\n"
         f"      - Stop time: ```{event['stop_time']}```\n"
+        f"      - Duration: ```{event['duration']}```\n"
         f"\nSources:\n"
     )
 
@@ -80,9 +81,34 @@ def populate_new_event(event, parsed_datetime, source, msg_id=None, occurance=1)
         'occurance': occurance,
         'start_time': parsed_datetime['time'],
         'stop_time': parsed_datetime['time'],
+        'duration': 0,
         'sources': [source],
         'hits': 1,
     }
+
+
+def calculate_event_duration(start_time, stop_time):
+    _start_time = datetime.strptime(start_time, "%H:%M:%S")
+    _stop_time = datetime.strptime(stop_time, "%H:%M:%S")
+    duration_seconds = (_stop_time - _start_time).seconds
+
+    hours = duration_seconds // 3600
+    minutes = (duration_seconds % 3600) // 60
+    seconds = duration_seconds % 60
+
+    def plural(num, unit):
+        return f"{num} {unit}s" if num > 1 else f"{num} {unit}" 
+
+    duration_str = plural(seconds, "second")
+    
+    if minutes:
+        duration_str = plural(minutes, "minute") + " " + duration_str
+    
+    if hours:
+        duration_str = plural(hours, "hour") + " " + duration_str
+
+    return duration_str
+
 
 
 async def main():
@@ -90,7 +116,7 @@ async def main():
     data['time_start'] = datetime.now()
 
     while True:
-        sleep(bot_sleep)
+        sleep(tg_bot_sleep)
 
         last_byte = get_last_byte()
 
@@ -119,6 +145,7 @@ async def main():
                     if is_event_recent(last_occurance, new_occurance):
                         events[event]['hits'] += 1
                         events[event]['stop_time'] = parsed_datetime['time']
+                        events[event]['duration'] = calculate_event_duration(events[event]['start_time'], events[event]['stop_time'])
 
                         if source not in events[event]['sources']:
                             events[event]['sources'].append(source)
