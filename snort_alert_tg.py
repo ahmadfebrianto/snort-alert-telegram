@@ -51,32 +51,33 @@ def read_new_data():
 
 def build_message(event):
     msg_str = (
-        f"Date: {event['date']}\n"
-        f"\nEvent: {event['name']}\n"
-        f"      - Start time: {event['start_time']}\n"
-        f"      - Stop time: {event['stop_time']}\n"
+        f"Date: **{event['date']}**\n"
+        f"\nEvent: **{event['name']} #{event['occurance']}**\n"
+        f"      - Start time: ```{event['start_time']}```\n"
+        f"      - Stop time: ```{event['stop_time']}```\n"
         f"\nSources:\n"
     )
 
     for source in event['sources']:
-        msg_str += f"      - {source}\n"
+        msg_str += f"      - **{source}**\n"
 
-    msg_str += f"\nHits: {event['hits']}\n"
+    msg_str += f"\nHits: **{event['hits']}**\n"
     return msg_str
 
 
 def is_event_recent(last_occurance, new_occurance):
     _last_occurance = datetime.strptime(last_occurance, "%d-%m-%Y %H:%M:%S")
     _new_occurance = datetime.strptime(new_occurance, "%d-%m-%Y %H:%M:%S")
-    delta = timedelta(minutes=5)
+    delta = timedelta(minutes=1)
     return (_new_occurance - _last_occurance) <= delta
 
 
-def populate_new_event(event, parsed_datetime, source):
+def populate_new_event(event, parsed_datetime, source, msg_id=None, occurance=1):
     events[event] = {
-        'msg_id': None,
+        'msg_id': msg_id,
         'date': parsed_datetime['date'],
         'name': event,
+        'occurance': occurance,
         'start_time': parsed_datetime['time'],
         'stop_time': parsed_datetime['time'],
         'sources': [source],
@@ -126,9 +127,14 @@ async def main():
                         await client.edit_message(tg_username, events[event]['msg_id'], msg_str)
 
                     else:
-                        populate_new_event(event, parsed_datetime, source)
+                        prev_msg_id = events[event]['msg_id']
+                        occurance_num = events[event]['occurance'] + 1
+                        populate_new_event(event, parsed_datetime, source, msg_id=prev_msg_id, occurance=occurance_num)
                         msg_str = build_message(events[event])
-                        msg = await client.send_message(tg_username, msg_str)
+                        if events[event]['msg_id']:
+                            msg = await client.send_message(tg_username, msg_str, reply_to=events[event]['msg_id'])
+                        else:
+                            msg = await client.send_message(tg_username, msg_str)
                         events[event]['msg_id'] = msg.id
 
                 data['last_byte'] = last_byte
