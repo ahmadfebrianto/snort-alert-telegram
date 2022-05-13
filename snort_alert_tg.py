@@ -38,7 +38,7 @@ events = dict()
 
 
 def parse_datetime(date_str):
-    date = datetime.strptime(date_str, "%d/%m/%y-%H:%M:%S.%f")
+    date = datetime.strptime(date_str, "%m/%d/%y-%H:%M:%S.%f")
     formatted_date = date.strftime("%d-%m-%Y")
     formatted_time = date.strftime("%H:%M:%S")
     return {
